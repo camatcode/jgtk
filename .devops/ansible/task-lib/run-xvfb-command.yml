@@ -1,0 +1,5 @@
+- name: "Running xvfb-run for ' {{ item }}' "
+  ansible.builtin.shell:
+    cmd: "xvfb-run -a -s \"-screen 0 1024x768x24 -noreset\" {{ item }}"
+    chdir: "{{ lookup('ansible.builtin.env', 'CI_PROJECT_DIR') }}"
+  become: yes

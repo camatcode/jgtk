@@ -1,0 +1,39 @@
+---
+
+- hosts: localhost
+
+  vars_files:
+    - vars/main.yml
+
+  handlers:
+    - import_tasks: task-lib/handlers.yml
+
+  tasks:
+
+  - block:
+    - include_tasks: task-lib/install-apt-package.yml
+      loop:
+        - libgtk-4-dev
+        - libgtk-4-media-gstreamer
+        - git
+        - openjdk-8-jdk-headless
+        - maven
+        - xvfb
+        - x11-xserver-utils
+        - gnome-icon-theme
+    - name: Make M2 repository in home
+      file:
+        path: "{{ lookup('ansible.builtin.env', 'HOME') }}/.m2/repository"
+        state: directory
+    - name: Make M2 repository in project dir
+      file:
+        path: "{{ lookup('ansible.builtin.env', 'CI_PROJECT_DIR') }}/.m2/"
+        state: directory
+    - file:
+        path: "{{ lookup('ansible.builtin.env', 'CI_PROJECT_DIR') }}/.m2/repository"
+        state: absent
+    - name: Symlink m2 repo in home to project dir
+      file:
+        src: "{{ lookup('ansible.builtin.env', 'HOME') }}/.m2/repository/"
+        dest: "{{ lookup('ansible.builtin.env', 'CI_PROJECT_DIR') }}/.m2/repository"
+        state: link

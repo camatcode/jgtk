@@ -1,0 +1,80 @@
+
+image: ubuntu:latest
+
+
+
+build:
+  stage: build
+  before_script:
+    - $CI_PROJECT_DIR/.devops/scripts/ubuntu/bootstrap-ansible.sh
+    - ansible-playbook .devops/ansible/bootstrap_pipeline.yml
+  script:
+    - ansible-playbook .devops/ansible/job-$CI_JOB_NAME.yml
+  except:
+    - tags
+
+pages:
+  stage: build
+  before_script:
+    - $CI_PROJECT_DIR/.devops/scripts/ubuntu/bootstrap-ansible.sh
+    - ansible-playbook .devops/ansible/bootstrap_pipeline.yml
+  script:
+    - ansible-playbook .devops/ansible/job-build.yml
+    - mkdir public
+    - cp -R $CI_PROJECT_DIR/target/apidocs/* public/
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+test:
+  stage: test
+  before_script:
+    - $CI_PROJECT_DIR/.devops/scripts/ubuntu/bootstrap-ansible.sh
+    - ansible-playbook .devops/ansible/bootstrap_pipeline.yml
+  script:
+    - ansible-playbook .devops/ansible/job-$CI_JOB_NAME.yml
+  except:
+    - release
+    - tag
+
+#release:
+#  stage: deploy
+#  before_script:
+#    - git config --global user.name "${GITLAB_USER_NAME}"
+#    - git config --global user.email "${GITLAB_USER_EMAIL}"
+#  script:
+#    - #export LAST_MSG=`git log -1 --pretty=%B`
+#    - #echo $LAST_MSG
+#    - #git fetch --all && git checkout origin/release
+#    - #git merge --no-ff origin/primary -X theirs -m "Merge"
+#    - #mvn semver:increment-patch
+#    - #if [[ "${LAST_MSG}" == *"MINOR"* ]]; then mvn semver:increment-minor; fi
+#    - #if [[ "${LAST_MSG}" == *"MAJOR"* ]]; then mvn semver:increment-major; fi
+#    - #export NEW_VERSION=`mvn semver:verify-current -Dforce-stdout -q`
+#    - #git add -A
+#    - #git commit -a -m "$NEW_VERSION"
+#    - #git status
+#    # "[ci skip]" and "-o ci-skip" prevent a CI trigger loop
+#    - #git push -o ci-skip http://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git HEAD:release
+#    #Tag commit (can be used without commiting files)
+#    - #git tag "$NEW_VERSION"
+#    - #git tag      
+#    - #git push --tags http://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git HEAD:release
+#  only:
+#    - main
+
+#deploy:
+#  stage: deploy
+#  script:
+#    - #(echo ${MVN_SETTINGS} | base64 -di) > /root/.m2/settings.xml
+#    - #ls -lah /root/.m2/settings.xml
+#    - #(echo ${GPG_PK} | base64 -di) > p.k
+#    - #ls -lah p.k
+#    - #gpg --batch --import p.k
+#    - #gpg --list-keys 
+#    - #gpgconf --kill gpg-agent
+#    - #mvn clean deploy --settings /root/.m2/settings.xml -Pdeploy
+#  only:
+#    - release
